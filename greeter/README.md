@@ -37,15 +37,9 @@ The easiest way to get this running would be by installing `cage` from the [opti
 
 ### 2. Greetd
 
-##### Minimal Compositor Config:
-
-If you are not on the listed [easy install compositors](#easy-install-compositors), you will have to add your own minimal configuration or use `cage`.
-
-##### Modify `/etc/greetd/config.toml`:
+**Modify `/etc/greetd/config.toml`:**
 
 ```toml
-# Modify your greetd configuration to point to your minimal config.
-
 [terminal]
 vt = 1
 
@@ -60,7 +54,11 @@ command = "env NIRI_CONFIG=/etc/ctos/greeter.niri.kdl uwsm start niri.desktop"
 
 # others and desktop environment users
 command = "env CTOS_MODE=kiosk cage -ds -m last -- quickshell --path /opt/ctos/greeter.qml"
-# note: customising monitor setup may require a wrapper script using wlr-randr
+
+# e.g. you have a secondary monitor that the original command is showing on
+# replace 'HDMI-A-1' with the name of the unwanted monitor
+# NOTE: requires wlr-randr to be installed
+command = "cage -ds -- sh -c 'wlr-randr --output HDMI-A-1 --off && env CTOS_MODE=kiosk quickshell --path /opt/ctos/greeter.qml'"
 
 user = "greeter"  # okay to be different, don't modify from your default
 
