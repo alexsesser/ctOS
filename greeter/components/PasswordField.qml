@@ -10,14 +10,6 @@ TextField {
 
     property alias rem: cursorMetrics.width
 
-    background: Rectangle {
-        color: "transparent"
-        border {
-            color: Theme.ctosGray
-            width: 2
-        }
-    }
-
     font {
         pixelSize: 16
         letterSpacing: 5

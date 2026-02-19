@@ -9,8 +9,6 @@ Item {
 
     default property alias content: container.data
 
-    property Animation entranceAnimation: defaultAnimation
-
     property bool animate: true
 
     property int startingHorizontalOffset: 0
@@ -121,92 +119,39 @@ Item {
 
         // Top Left
         NumberAnimation {
-            target: accentTopLeft
+            targets: [accentTopLeft, accentTopRight, accentBotRight, accentBotLeft]
             property: "opacity"
             to: 1
             duration: root.opacityDuration
             easing.type: root.opacityEasing
         }
         NumberAnimation {
-            target: accentTopLeft
+            targets: [accentTopLeft, accentBotLeft]
             property: "anchors.leftMargin"
             to: root._horizontalOffset
             duration: root.translateDuration
             easing.type: root.translateEasing
         }
         NumberAnimation {
-            target: accentTopLeft
+            targets: [accentTopLeft, accentTopRight]
             property: "anchors.topMargin"
             to: root._verticalOffset
             duration: root.translateDuration
             easing.type: root.translateEasing
         }
 
-        // Bottom Left
         NumberAnimation {
-            target: accentBotLeft
-            property: "opacity"
-            to: 1
-            duration: root.opacityDuration
-            easing.type: root.opacityEasing
-        }
-        NumberAnimation {
-            target: accentBotLeft
-            property: "anchors.leftMargin"
-            to: root._horizontalOffset
-            duration: root.translateDuration
-            easing.type: root.translateEasing
-        }
-        NumberAnimation {
-            target: accentBotLeft
+            targets: [accentBotLeft, accentBotRight]
             property: "anchors.bottomMargin"
             to: root._verticalOffset
             duration: root.translateDuration
             easing.type: root.translateEasing
         }
 
-        // Top Right
         NumberAnimation {
-            target: accentTopRight
-            property: "opacity"
-            to: 1
-            duration: root.opacityDuration
-            easing.type: root.opacityEasing
-        }
-        NumberAnimation {
-            target: accentTopRight
+            targets: [accentTopRight, accentBotRight]
             property: "anchors.rightMargin"
             to: root._horizontalOffset
-            duration: root.translateDuration
-            easing.type: root.translateEasing
-        }
-        NumberAnimation {
-            target: accentTopRight
-            property: "anchors.topMargin"
-            to: root._verticalOffset
-            duration: root.translateDuration
-            easing.type: root.translateEasing
-        }
-
-        // Bottom Right
-        NumberAnimation {
-            target: accentBotRight
-            property: "opacity"
-            to: 1
-            duration: root.opacityDuration
-            easing.type: root.opacityEasing
-        }
-        NumberAnimation {
-            target: accentBotRight
-            property: "anchors.rightMargin"
-            to: root._horizontalOffset
-            duration: root.translateDuration
-            easing.type: root.translateEasing
-        }
-        NumberAnimation {
-            target: accentBotRight
-            property: "anchors.bottomMargin"
-            to: root._verticalOffset
             duration: root.translateDuration
             easing.type: root.translateEasing
         }
@@ -216,12 +161,12 @@ Item {
 
     Component.onCompleted: {
         if (!animate) {
-            entranceAnimation.resume();
-            entranceAnimation.complete();
+            defaultAnimation.resume();
+            defaultAnimation.complete();
         }
     }
 
     function start() {
-        entranceAnimation.resume();
+        defaultAnimation.resume();
     }
 }
