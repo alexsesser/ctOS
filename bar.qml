@@ -38,6 +38,8 @@ PanelWindow {
         Divider {}
 
         Workspace {}
+        Workspace {}
+        Workspace {}
 
         Divider {}
     }

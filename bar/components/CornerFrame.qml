@@ -18,14 +18,18 @@ Item {
 
     onCountChanged: {
         if (count > 4 || count < 0) {
-            throw new Error(`CornerFrame.count: must be between 0 - 4, received: ${count}`);
+            throw new Error(
+                `CornerFrame.count: must be between 0 - 4, received: 
+
+
+
+
+${count}`);
         }
     }
 
     component CornerFrameImage: Image {
         source: "../resources/corner-frame.svg"
-        antialiasing: false
-        smooth: false
     }
 
     component CornerSquareImage: Image {

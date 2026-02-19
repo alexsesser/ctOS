@@ -42,7 +42,7 @@ Row {
 
             font {
                 pixelSize: 22
-                family: Settings.fontFamily
+                family: Theme.fontFamily
                 weight: 500
             }
         }
@@ -56,7 +56,7 @@ Row {
         color: Theme.ctosGray
 
         font {
-            family: Settings.fontFamily
+            family: Theme.fontFamily
             pixelSize: 36
             weight: 300
         }
