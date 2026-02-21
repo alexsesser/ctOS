@@ -9,10 +9,9 @@ NAMESPACE="ctos"
 CONFIG_DIR="/etc/$NAMESPACE"
 INSTALL_DIR="/opt/$NAMESPACE"
 
-declare -l COMPOSITOR="" # lowercase only
-
 # configs
 GREETER_CONFIG_FILEPATH="$CONFIG_DIR/greeter.config.json"
+GREETER_KWIN_FILEPATH="$CONFIG_DIR/greeter.kwin.conf"
 
 FRESH_INSTALL=1
 if [[ -d "$CONFIG_DIR" ]]; then
@@ -27,9 +26,6 @@ graceful_exit() {
 }
 
 detect_compositor() {
-
-  COMPOSITOR="$XDG_CURRENT_DESKTOP"
-
   if [[ "$XDG_SESSION_TYPE" != "wayland" ]]; then
     echo
     echo "[ERROR] CTOS only supports Wayland sessions."
@@ -43,7 +39,7 @@ generate_greeter_config() {
 
   cat <<EOF
 {
-  "\$schema": "https://raw.githubusercontent.com/TSM-061/ctOS/main/schema/greeter.schema.json",
+  "\$schema": "https://raw.githubusercontent.com/alexsesser/ctOS/main/schema/greeter.schema.json",
   "user": "$user",
   "monitor": "$monitor",
   "fontFamily": "JetBrainsMono Nerd Font",
@@ -59,8 +55,8 @@ generate_greeter_config() {
   "modes": {
     "greetd": {
       "animations": "all",
-      "exit": ["uwsm", "stop"],
-      "launch":["uwsm", "start", "$COMPOSITOR.desktop"] 
+      "exit": ["pkill", "kwin_wayland"],
+      "launch": ["startplasma-wayland"]
     },
     "lockd": {
       "animations": "reduced"
@@ -73,8 +69,61 @@ generate_greeter_config() {
 EOF
 }
 
+generate_kwin_conf() {
+  local monitor="$1"
+
+  cat <<EOF
+#!/bin/sh
+export XDG_RUNTIME_DIR="/run/user/\$(id -u greeter)"
+export QT_QPA_PLATFORM=wayland
+export GDK_BACKEND=wayland
+export CTOS_MODE=greetd
+
+exec /usr/bin/kwin_wayland \\
+    --width 1920 \\
+    --height 1080 \\
+    --exit-with-session="/usr/bin/quickshell --path $INSTALL_DIR/greeter.qml" \\
+    --no-lockscreen \\
+    --no-global-shortcuts \\
+    --no-kactivities \\
+    --inputmethod /usr/lib/qt6/plugins/org.kde.kwin.inputmethod.empty.so
+EOF
+}
+
+# Записывает файл всегда (создаёт или перезаписывает)
+write_file() {
+  local contents="$1"
+  local target_path="$2"
+  local existed=0
+
+  [[ -f "$target_path" ]] && existed=1
+
+  sudo mkdir -p "$(dirname "$target_path")"
+
+  if [[ -z "$contents" ]]; then
+    echo
+    echo "[!][ERROR] empty input for $target_path"
+    exit 1
+  fi
+
+  echo "$contents" | sudo tee "$target_path" >/dev/null
+
+  if [[ $? -eq 0 ]]; then
+    if [[ $existed -eq 1 ]]; then
+      echo "[ITEM] updated: $target_path"
+    else
+      echo "[ITEM]   added: $target_path"
+    fi
+    return 0
+  fi
+
+  echo "[!][ERROR] failed to write: $target_path"
+  exit 1
+}
+
+# Создаёт файл только если не существует (для пользовательских конфигов)
 ensure_exists() {
-  local input="$1" # either filepath or string
+  local input="$1"
   local target_path="$2"
 
   if [[ -f "$target_path" ]]; then
@@ -82,52 +131,51 @@ ensure_exists() {
     return 0
   fi
 
-  mkdir -p "$(dirname "$target_path")"
+  sudo mkdir -p "$(dirname "$target_path")"
 
   local contents=""
 
-  if [[ -d "$(dirname "$input")" ]]; then
-    if [[ ! -f "$input" ]]; then
-      echo
-      echo "[!][ERROR] file not found '$input'"
-      exit 1
-    else
-      contents=$(cat "$input")
-    fi
+  if [[ -f "$input" ]]; then
+    contents=$(cat "$input")
   else
     contents="$input"
   fi
 
   if [[ -z "$contents" ]]; then
     echo
-    echo "[!][ERROR] empty input"
+    echo "[!][ERROR] empty input for $target_path"
     exit 1
   fi
 
   echo "$contents" | sudo tee "$target_path" >/dev/null
 
   if [[ $? -eq 0 ]]; then
-    echo "[ITEM] added: $target_path"
+    echo "[ITEM]   added: $target_path"
     return 0
   fi
 
-  echo "error: $target_path"
+  echo "[!][ERROR] failed to write: $target_path"
+  exit 1
 }
 
 function detect_monitor() {
-  case "$COMPOSITOR" in
-  "hyprland")
-    DEFAULT_MONITOR=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' 2>/dev/null)
-    ;;
-  "niri")
-    DEFAULT_MONITOR=$(niri msg -j outputs 2>/dev/null | jq -r 'keys[0]' 2>/dev/null)
-    ;;
-  esac
+  # Пытаемся определить монитор через kscreen
+  DEFAULT_MONITOR=$(kscreen-doctor -o 2>/dev/null | grep -oP '(?<=Output: )\S+' | head -1)
+
+  # Fallback через wlr-randr если установлен
+  if [[ -z "$DEFAULT_MONITOR" ]]; then
+    DEFAULT_MONITOR=$(wlr-randr 2>/dev/null | grep -oP '^\S+' | head -1)
+  fi
+
+  # Fallback через /sys
+  if [[ -z "$DEFAULT_MONITOR" ]]; then
+    DEFAULT_MONITOR=$(ls /sys/class/drm/ | grep -oP '(?<=card\d-)\S+' | head -1)
+  fi
 }
 
 function run_setup_wizard() {
   echo
-  echo "[CTOS INSTALLER]"
+  echo "[CTOS INSTALLER — KDE/Arch]"
   echo
 
   DEFAULT_USER=$(whoami)
@@ -141,7 +189,7 @@ function run_setup_wizard() {
 
   echo
   echo "[BASIC SETTINGS]"
-  echo "COMPOSITOR=${COMPOSITOR:-n/a}"
+  echo "COMPOSITOR=kwin_wayland"
   echo "USER=$SELECTED_USER"
   echo "MONITOR=$SELECTED_MONITOR"
   echo
@@ -153,33 +201,14 @@ function run_setup_wizard() {
     echo "[EXIT] Installation aborted."
     exit 1
   fi
-
 }
 
-function install_greeter_compositor_config() {
-  local scaffold_dir="$SCRIPT_DIR/greeter/examples/"
+function install_greeter_kwin_conf() {
+  write_file "$(generate_kwin_conf "$SELECTED_MONITOR")" "$GREETER_KWIN_FILEPATH"
 
-  declare -A templates=(
-    ["hyprland"]="$scaffold_dir/greeter.hyprland.conf"
-    ["niri"]="$scaffold_dir/greeter.niri.kdl"
-  )
-
-  local config_src=${templates[$COMPOSITOR]}
-
-  local config_dest="$CONFIG_DIR/$(basename "$config_src")"
-
-  if [[ -z "$config_src" ]]; then
-    echo "[ITEM]     n/a: $CONFIG_DIR/greeter.<compositor>.<filetype>"
-    echo
-    echo "  [!] Note: You can ignore above item being n/a if you are using cage."
-    echo "      https://github.com/TSM-061/ctOS/tree/main/greeter#other-environments"
-    echo
-  fi
-
-  if [[ -n "$config_src" ]]; then
-    ensure_exists "$config_src" "$config_dest"
-    return 0
-  fi
+  # Делаем исполняемым — greetd запускает его как скрипт
+  sudo chmod +x "$GREETER_KWIN_FILEPATH"
+  echo "[ITEM]    chmod: $GREETER_KWIN_FILEPATH (executable)"
 }
 
 function sync_project_files() {
@@ -188,6 +217,7 @@ function sync_project_files() {
   sudo rsync -ahq \
     --exclude=".git" \
     --exclude=".assets" \
+    --exclude="themes" \
     --chmod=Du=rwx,Dg=rx,Do=rx,Fu=rw,Fg=r,Fo=r \
     "$SCRIPT_DIR/" "$INSTALL_DIR"
 
@@ -195,6 +225,31 @@ function sync_project_files() {
     echo "[ITEM]   added: $INSTALL_DIR"
   else
     echo "[ITEM] updated: $INSTALL_DIR"
+  fi
+}
+
+function check_greetd_config() {
+  local greetd_config="/etc/greetd/config.toml"
+
+  if [[ ! -f "$greetd_config" ]]; then
+    echo
+    echo "[WARN] /etc/greetd/config.toml not found. Is greetd installed?"
+    echo "       Install with: sudo pacman -S greetd"
+    return
+  fi
+
+  # Проверяем что greetd уже указывает на наш скрипт
+  if grep -q "$GREETER_KWIN_FILEPATH" "$greetd_config"; then
+    echo "[ITEM]    ok: greetd already configured"
+  else
+    echo
+    echo "[WARN] greetd не настроен на ctOS."
+    echo "       Добавь в $greetd_config:"
+    echo
+    echo "  [default_session]"
+    echo "  command = \"$GREETER_KWIN_FILEPATH\""
+    echo "  user = \"greeter\""
+    echo
   fi
 }
 
@@ -206,24 +261,33 @@ trap graceful_exit ERR SIGINT SIGTERM
 
 detect_compositor
 
+# Читаем существующий конфиг чтобы сохранить user/monitor при обновлении
+if [[ -f "$GREETER_CONFIG_FILEPATH" ]]; then
+  EXISTING_USER=$(python3 -c "import json,sys; d=json.load(open('$GREETER_CONFIG_FILEPATH')); print(d.get('user',''))" 2>/dev/null)
+  EXISTING_MONITOR=$(python3 -c "import json,sys; d=json.load(open('$GREETER_CONFIG_FILEPATH')); print(d.get('monitor',''))" 2>/dev/null)
+fi
+
 if [[ "$FRESH_INSTALL" -eq 1 || ! -f "$GREETER_CONFIG_FILEPATH" ]]; then
+  # Первая установка — спрашиваем пользователя
   run_setup_wizard
   sudo mkdir -p "$CONFIG_DIR"
+  write_file "$(generate_greeter_config "$SELECTED_USER" "$SELECTED_MONITOR")" "$GREETER_CONFIG_FILEPATH"
+else
+  # Обновление — перезаписываем конфиг, сохраняя user и monitor
+  SELECTED_USER="${EXISTING_USER:-$(whoami)}"
+  SELECTED_MONITOR="${EXISTING_MONITOR:-}"
+  detect_monitor
+  SELECTED_MONITOR="${SELECTED_MONITOR:-$DEFAULT_MONITOR}"
+  write_file "$(generate_greeter_config "$SELECTED_USER" "$SELECTED_MONITOR")" "$GREETER_CONFIG_FILEPATH"
 fi
 
 echo
 
-ensure_exists "$(generate_greeter_config "$SELECTED_USER" "$SELECTED_MONITOR")" "$GREETER_CONFIG_FILEPATH"
-
-install_greeter_compositor_config
+install_greeter_kwin_conf
 
 sync_project_files
 
-if [[ "$FRESH_INSTALL" -eq 1 ]]; then
-  echo
-  echo "[WARN] This installation assumes you are using 'uwsm', if not "
-  echo "       change the launch/exit commands in $(basename "$GREETER_CONFIG_FILEPATH")."
-fi
+check_greetd_config
 
 echo
 echo "[EXIT] SUCCESSFULLY COMPLETED."
