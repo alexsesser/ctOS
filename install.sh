@@ -25,6 +25,79 @@ graceful_exit() {
   exit 1
 }
 
+install_dependencies() {
+  echo "[DEPS] Checking dependencies..."
+  echo
+
+  # Пакеты из официальных репозиториев
+  local pacman_packages=(
+    "greetd"
+    "rsync"
+    "python"
+    "kwin"
+  )
+
+  # Пакеты из AUR
+  local aur_packages=(
+    "quickshell-git"
+    "ttf-jetbrains-mono-nerd"
+  )
+
+  # Определяем AUR хелпер
+  local aur_helper=""
+  for helper in yay paru; do
+    if command -v "$helper" &>/dev/null; then
+      aur_helper="$helper"
+      break
+    fi
+  done
+
+  # Устанавливаем pacman пакеты
+  local missing_pacman=()
+  for pkg in "${pacman_packages[@]}"; do
+    if ! pacman -Qi "$pkg" &>/dev/null; then
+      missing_pacman+=("$pkg")
+    else
+      echo "[DEPS]    ok: $pkg"
+    fi
+  done
+
+  if [[ ${#missing_pacman[@]} -gt 0 ]]; then
+    echo "[DEPS] Installing: ${missing_pacman[*]}"
+    sudo pacman -S --needed --noconfirm "${missing_pacman[@]}"
+  fi
+
+  # Устанавливаем AUR пакеты
+  local missing_aur=()
+  for pkg in "${aur_packages[@]}"; do
+    # Проверяем по базовому имени без суффикса -git
+    local base_pkg="${pkg%-git}"
+    if ! pacman -Qi "$pkg" &>/dev/null && ! pacman -Qi "$base_pkg" &>/dev/null; then
+      missing_aur+=("$pkg")
+    else
+      echo "[DEPS]    ok: $pkg"
+    fi
+  done
+
+  if [[ ${#missing_aur[@]} -gt 0 ]]; then
+    if [[ -z "$aur_helper" ]]; then
+      echo
+      echo "[WARN] AUR helper (yay/paru) not found. Install manually:"
+      for pkg in "${missing_aur[@]}"; do
+        echo "       $pkg"
+      done
+      echo
+    else
+      echo "[DEPS] Installing from AUR via $aur_helper: ${missing_aur[*]}"
+      "$aur_helper" -S --needed --noconfirm "${missing_aur[@]}"
+    fi
+  fi
+
+  echo
+  echo "[DEPS] Done."
+  echo
+}
+
 detect_compositor() {
   if [[ "$XDG_SESSION_TYPE" != "wayland" ]]; then
     echo
@@ -258,6 +331,8 @@ function check_greetd_config() {
 # --------------------------------------------------------------------------------
 
 trap graceful_exit ERR SIGINT SIGTERM
+
+install_dependencies
 
 detect_compositor
 
