@@ -24,7 +24,7 @@ Singleton {
         "test": 0,
         "lockd": 1,
         "greetd": 2,
-        "kiosk": 3  // still greetd but designed for cage
+        "kiosk": 3
     }
 
     readonly property int mode: {
@@ -68,7 +68,9 @@ Singleton {
         return monitor;
     }
 
-    readonly property string user: greeter.getRequired("user").toString()
+    // defaultUser — начальное значение из конфига, может быть пустым
+    // user в AuthManager может переопределяться через UI
+    readonly property string defaultUser: greeter.getOptional("user", "")
 
     enum AnimationMode {
         None = 0,
@@ -96,10 +98,10 @@ Singleton {
         return animationMode >= mode;
     }
 
-    readonly property var launchCommand: greeter.getOptional("modes.greetd.launch", ["uwsm", "start", "hyprland.desktop"], {
+    readonly property var launchCommand: greeter.getOptional("modes.greetd.launch", ["startplasma-wayland"], {
         overrideable: false
     })
-    readonly property var exitCommand: greeter.getOptional("modes.greetd.exit", ["uwsm", "stop"], {
+    readonly property var exitCommand: greeter.getOptional("modes.greetd.exit", ["pkill", "kwin_wayland"], {
         overrideable: false
     })
 

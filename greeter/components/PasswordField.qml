@@ -16,7 +16,6 @@ TextField {
     }
 
     echoMode: TextInput.Password
-
     passwordCharacter: "█"
 
     TextMetrics {
@@ -26,7 +25,9 @@ TextField {
     }
 
     leftPadding: 8
-    rightPadding: cursorMetrics.width + 6  // fixes cursor going through border
+    rightPadding: cursorMetrics.width + 6
+
+    cursorVisible: false
 
     cursorDelegate: Text {
         id: cursor
@@ -34,66 +35,59 @@ TextField {
         color: passwordField.color
         font: passwordField.font
         text: "▁"
+        opacity: 0
 
         Timer {
-            id: blinkDelayTimer
+            id: blinkTimer
             interval: 500
-            onTriggered: {
-                blinkAnimation.running = true;
-            }
+            repeat: true
+            running: false
+            onTriggered: cursor.opacity = cursor.opacity === 1 ? 0 : 1
         }
 
         Connections {
             target: passwordField
 
-            function onEnabledChanged() {
-                if (passwordField.enabled) {
-                    blinkDelayTimer.running = true;
-                    // don't interrupt mid animation
+            function onActiveFocusChanged() {
+                if (passwordField.activeFocus) {
+                    cursor.opacity = 1
+                    blinkTimer.start()
                 } else {
-                    blinkDelayTimer.running = false;
-                    blinkAnimation.running = false;
+                    blinkTimer.stop()
+                    cursor.opacity = 0
+                }
+            }
 
-                    cursor.opacity = 0;
+            function onEnabledChanged() {
+                if (!passwordField.enabled) {
+                    blinkTimer.stop()
+                    cursor.opacity = 0
                 }
             }
 
             function onTextEdited() {
-                blinkDelayTimer.restart();
-                blinkAnimation.running = false;
-
-                cursor.opacity = 1;
+                cursor.opacity = 1
+                blinkTimer.restart()
             }
         }
 
-        SequentialAnimation on opacity {
-            id: blinkAnimation
-
-            loops: Animation.Infinite
-
-            NumberAnimation {
-                from: 1
-                to: 1
-                duration: 500
-            }
-
-            NumberAnimation {
-                from: 1
-                to: 0
-                duration: 300
-            }
-
-            NumberAnimation {
-                from: 0
-                to: 0
-                duration: 300
+        Component.onCompleted: {
+            if (passwordField.activeFocus) {
+                cursor.opacity = 1
+                blinkTimer.start()
             }
         }
     }
 
+    background: Rectangle {
+        color: "transparent"
+        border {
+            color: Theme.ctosGray
+            width: 2
+        }
+    }
+
     Component.onDestruction: {
-        // in greeter, element will be focused as soon as it is created
-        // graceful exit, wayland complains about surface with focus quitting
-        passwordField.focus = false;
+        passwordField.focus = false
     }
 }

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/TSM-061/ctOS/main/schema/greeter.schema.json",
+  "user": "alexsesser",
+  "monitor": "eDP-1",
+  "fontFamily": "JetBrainsMono Nerd Font",
+  "fakeIdentity": {
+    "id": "XYZ-843",
+    "class": "L5_PROV",
+    "fullName": "Blume Admin"
+  },
+  "fakeStatus": {
+    "env": "Workstation",
+    "node": "109.389.013.301"
+  },
+  "modes": {
+    "greetd": {
+      "animations": "all",
+      "exit": ["pkill", "kwin_wayland"],
+      "launch": ["startplasma-wayland"]
+    },
+    "lockd": {
+      "animations": "reduced"
+    },
+    "test": {
+      "animations": "all"
+    }
+  }
+}

@@ -50,8 +50,6 @@ Singleton {
         interval: 200
         repeat: true
         onTriggered: {
-            // make sure socket ready for new session
-            // authenticating(1) -> inactive (0)
             if (Greetd.state !== GreetdState.Inactive) {
                 return;
             }

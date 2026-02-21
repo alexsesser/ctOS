@@ -28,7 +28,8 @@ Singleton {
         Finish
     }
 
-    property string user: Settings.user
+    // Начальное значение из конфига, но может быть изменено через UI
+    property string user: Settings.defaultUser
 
     property int state: AuthManager.State.Inactive
 

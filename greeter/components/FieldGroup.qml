@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import qs.common
 import qs.greeter.components
 import qs.greeter.config
@@ -13,6 +14,7 @@ ColumnLayout {
     width: 294 * Units.vh
     spacing: 0
 
+    // SECTION Username row
     RowLayout {
         id: userRow
 
@@ -31,19 +33,67 @@ ColumnLayout {
             source: "../resources/barcode.svg"
         }
 
-        Typewriter {
-            id: userText
+        // Редактируемое поле имени пользователя
+        TextField {
+            id: userInput
+
+            text: AuthManager.user
+            placeholderText: "username"
 
             color: Theme.textPrimary
-            initialText: AuthManager.user.toUpperCase()
-
             font {
-                pixelSize: 14
                 family: Settings.fontFamily
+                pixelSize: 14
+                bold: true
+            }
+
+            background: Rectangle {
+                color: "transparent"
+                border.color: "transparent"
+            }
+
+            cursorVisible: false
+
+            // Синхронизируем ввод с AuthManager
+            onTextChanged: AuthManager.user = text
+
+            // Tab переключает фокус на поле пароля
+            Keys.onTabPressed: passwordField.forceActiveFocus()
+            Keys.onReturnPressed: passwordField.forceActiveFocus()
+
+            cursorDelegate: Text {
+                id: userCursor
+
+                color: Theme.textPrimary
+                font: userInput.font
+                text: "▁"
+                opacity: 0
+
+                Timer {
+                    id: userBlinkTimer
+                    interval: 500
+                    repeat: true
+                    running: false
+                    onTriggered: userCursor.opacity = userCursor.opacity === 1 ? 0 : 1
+                }
+
+                Connections {
+                    target: userInput
+                    function onFocusChanged() {
+                        if (userInput.focus) {
+                            userCursor.opacity = 1
+                            userBlinkTimer.start()
+                        } else {
+                            userBlinkTimer.stop()
+                            userCursor.opacity = 0
+                        }
+                    }
+                }
             }
         }
     }
 
+    // SECTION Password field
     PasswordField {
         id: passwordField
 
@@ -53,6 +103,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 40 * Units.vh
         Layout.alignment: Qt.AlignCenter
+
         color: {
             switch (AuthManager.state) {
             case AuthManager.State.Loading:
@@ -66,10 +117,13 @@ ColumnLayout {
                 return Theme.textPrimary;
             }
         }
+
         z: 5
+
         onAccepted: {
             AuthManager.respond(passwordField.text);
         }
+
         Component.onCompleted: {
             passwordField.forceActiveFocus();
         }
@@ -140,6 +194,7 @@ ColumnLayout {
         }
     }
 
+    // SECTION Login button
     Rectangle {
         id: loginButton
 
@@ -163,8 +218,7 @@ ColumnLayout {
             id: loginText
 
             text: "LOGIN"
-            visible: AuthManager.state === AuthManager.State.Loading ? false :
-                                                                       true
+            visible: AuthManager.state !== AuthManager.State.Loading
             color: Theme.background
 
             anchors {
@@ -188,6 +242,7 @@ ColumnLayout {
         }
     }
 
+    // SECTION Success animation
     SequentialAnimation {
         id: animation
 
