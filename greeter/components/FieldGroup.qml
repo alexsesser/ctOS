@@ -40,6 +40,11 @@ ColumnLayout {
             text: AuthManager.user
             placeholderText: "username"
 
+            // Фиксированная ширина — текст уходит влево при переполнении
+            Layout.fillWidth: true
+            Layout.maximumWidth: fieldGroup.width - barcode.width - userRow.spacing
+            clip: true
+
             color: Theme.textPrimary
             font {
                 family: Settings.fontFamily
