@@ -61,7 +61,7 @@ ColumnLayout {
 
             // Tab цикл: username → session
             Keys.onTabPressed: sessionRow.forceActiveFocus()
-            Keys.onReturnPressed: passwordField.forceActiveFocus()
+            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
 
             cursorDelegate: Text {
                 id: userCursor
@@ -212,6 +212,10 @@ ColumnLayout {
 
             // Tab цикл: session → login
             Keys.onTabPressed: loginScope.forceActiveFocus()
+
+            // Enter выполняет вход
+            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
+            Keys.onEnterPressed: AuthManager.respond(passwordField.text)
 
             // Стрелки для смены сессии
             Keys.onLeftPressed: SessionManager.prev()
