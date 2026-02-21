@@ -33,14 +33,12 @@ ColumnLayout {
             source: "../resources/barcode.svg"
         }
 
-        // Редактируемое поле имени пользователя
         TextField {
             id: userInput
 
             text: AuthManager.user
             placeholderText: "username"
 
-            // Фиксированная ширина — текст уходит влево при переполнении
             Layout.fillWidth: true
             Layout.maximumWidth: fieldGroup.width - barcode.width - userRow.spacing
             clip: true
@@ -59,11 +57,10 @@ ColumnLayout {
 
             cursorVisible: false
 
-            // Синхронизируем ввод с AuthManager
             onTextChanged: AuthManager.user = text
 
-            // Tab переключает фокус на поле пароля
-            Keys.onTabPressed: passwordField.forceActiveFocus()
+            // Tab цикл: username → session
+            Keys.onTabPressed: sessionRow.forceActiveFocus()
             Keys.onReturnPressed: passwordField.forceActiveFocus()
 
             cursorDelegate: Text {
@@ -112,26 +109,29 @@ ColumnLayout {
         color: {
             switch (AuthManager.state) {
             case AuthManager.State.Loading:
-                return Theme.textPrimaryDim;
+                return Theme.textPrimaryDim
             case AuthManager.State.Success:
             case AuthManager.State.Finish:
-                return Theme.success;
+                return Theme.success
             case AuthManager.State.Failed:
-                return Theme.error;
+                return Theme.error
             default:
-                return Theme.textPrimary;
+                return Theme.textPrimary
             }
         }
 
         z: 5
 
         onAccepted: {
-            AuthManager.respond(passwordField.text);
+            AuthManager.respond(passwordField.text)
         }
 
         Component.onCompleted: {
-            passwordField.forceActiveFocus();
+            passwordField.forceActiveFocus()
         }
+
+        // Tab цикл: password → username
+        Keys.onTabPressed: userInput.forceActiveFocus()
 
         Rectangle {
             id: progress
@@ -141,7 +141,6 @@ ColumnLayout {
 
             transform: Scale {
                 id: progressScale
-
                 xScale: passwordField.progressPercentage / 100
             }
         }
@@ -199,50 +198,132 @@ ColumnLayout {
         }
     }
 
-    // SECTION Login button
-    Rectangle {
-        id: loginButton
+    // SECTION Bottom row: session selector + login button
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: 0
 
-        Layout.preferredHeight: 26 * Units.vh
-        Layout.preferredWidth: parent.width * 0.38
-        Layout.alignment: Qt.AlignRight
-        color: Theme.ctosGray
-        transform: [
-            Scale {
-                id: loginScale
+        // Session selector: ‹ KDE PLASMA ›
+        FocusScope {
+            id: sessionRow
 
-                origin.x: loginButton.width
-                origin.y: 0
-            },
-            Translate {
-                id: loginTranslate
-            }
-        ]
+            Layout.fillWidth: true
+            Layout.preferredHeight: 26 * Units.vh
 
-        Text {
-            id: loginText
+            // Tab цикл: session → login
+            Keys.onTabPressed: loginScope.forceActiveFocus()
 
-            text: "LOGIN"
-            visible: AuthManager.state !== AuthManager.State.Loading
-            color: Theme.background
+            // Стрелки для смены сессии
+            Keys.onLeftPressed: SessionManager.prev()
+            Keys.onRightPressed: SessionManager.next()
 
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
+            // Подсветка рамки когда в фокусе
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                border {
+                    color: sessionRow.activeFocus ? Theme.ctosGray : Theme.secondary
+                    width: 1
+                }
             }
 
-            font {
-                pixelSize: 16
-                family: Settings.fontFamily
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 6
+                anchors.rightMargin: 6
+                spacing: 4
+
+                Text {
+                    text: "‹"
+                    color: sessionRow.activeFocus ? Theme.textPrimary : Theme.textSecondary
+                    font {
+                        family: Settings.fontFamily
+                        pixelSize: 16
+                    }
+                }
+
+                Text {
+                    id: sessionName
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    text: SessionManager.current.name.toUpperCase()
+                    color: sessionRow.activeFocus ? Theme.textPrimary : Theme.textSecondary
+                    font {
+                        family: Settings.fontFamily
+                        pixelSize: 12
+                        weight: Font.Medium
+                    }
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    text: "›"
+                    color: sessionRow.activeFocus ? Theme.textPrimary : Theme.textSecondary
+                    font {
+                        family: Settings.fontFamily
+                        pixelSize: 16
+                    }
+                }
             }
         }
 
-        Spinner {
-            active: AuthManager.state === AuthManager.State.Loading
+        // Login button
+        FocusScope {
+            id: loginScope
 
-            anchors {
-                horizontalCenter: loginButton.horizontalCenter
-                verticalCenter: loginButton.verticalCenter
+            Layout.preferredHeight: 26 * Units.vh
+            Layout.preferredWidth: parent.width * 0.38
+
+            // Tab цикл: login → password (замыкание)
+            Keys.onTabPressed: passwordField.forceActiveFocus()
+
+            // Enter когда кнопка в фокусе — логин
+            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
+            Keys.onEnterPressed: AuthManager.respond(passwordField.text)
+
+            Rectangle {
+                id: loginButton
+
+                anchors.fill: parent
+                color: loginScope.activeFocus ? "#7CFC00" : Theme.ctosGray
+
+                transform: [
+                    Scale {
+                        id: loginScale
+                        origin.x: loginButton.width
+                        origin.y: 0
+                    },
+                    Translate {
+                        id: loginTranslate
+                    }
+                ]
+
+                Text {
+                    id: loginText
+
+                    text: "LOGIN"
+                    visible: AuthManager.state !== AuthManager.State.Loading
+                    color: loginScope.activeFocus ? "#0a0a0a" : Theme.background
+
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+
+                    font {
+                        pixelSize: 16
+                        family: Settings.fontFamily
+                    }
+                }
+
+                Spinner {
+                    active: AuthManager.state === AuthManager.State.Loading
+
+                    anchors {
+                        horizontalCenter: loginButton.horizontalCenter
+                        verticalCenter: loginButton.verticalCenter
+                    }
+                }
             }
         }
     }
@@ -261,7 +342,7 @@ ColumnLayout {
 
         ParallelAnimation {
             NumberAnimation {
-                targets: [userRow, loginText]
+                targets: [userRow, sessionRow, loginScope]
                 property: "opacity"
                 duration: 150
                 to: 0
@@ -276,7 +357,6 @@ ColumnLayout {
         }
 
         ParallelAnimation {
-
             ColorAnimation {
                 target: passwordFieldBg
                 property: "border.color"
@@ -353,6 +433,6 @@ ColumnLayout {
     }
 
     function start() {
-        animation.start();
+        animation.start()
     }
 }

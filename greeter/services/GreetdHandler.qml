@@ -70,9 +70,10 @@ Singleton {
     }
 
     function finish() {
-        logger.info(`Launching: ${Settings.launchCommand.join(" ")}`);
+        const launchCmd = SessionManager.current.exec.split(" ")
+        logger.info(`Launching session: ${SessionManager.current.name} -> ${launchCmd.join(" ")}`)
 
-        Greetd.launch(Settings.launchCommand);
-        Quickshell.execDetached(Settings.exitCommand);
+        Greetd.launch(launchCmd)
+        Quickshell.execDetached(Settings.exitCommand)
     }
 }
