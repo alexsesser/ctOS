@@ -15,8 +15,13 @@
   "modes": {
     "greetd": {
       "animations": "all",
-      "exit": ["pkill", "kwin_wayland"],
-      "launch": ["startplasma-wayland"]
+      "exit": [
+        "pkill",
+        "quickshell"
+      ],
+      "launch": [
+        "startplasma-wayland"
+      ]
     },
     "lockd": {
       "animations": "reduced"

@@ -128,7 +128,7 @@ generate_greeter_config() {
   "modes": {
     "greetd": {
       "animations": "all",
-      "exit": ["pkill", "kwin_wayland"],
+      "exit": ["pkill", "quickshell"],
       "launch": ["startplasma-wayland"]
     },
     "lockd": {
