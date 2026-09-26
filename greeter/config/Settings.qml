@@ -101,7 +101,8 @@ Singleton {
     readonly property var launchCommand: greeter.getOptional("modes.greetd.launch", ["startplasma-wayland"], {
         overrideable: false
     })
-    readonly property var exitCommand: greeter.getOptional("modes.greetd.exit", ["pkill", "kwin_wayland"], {
+    // optional, see schema: Greetd.launch() quits Quickshell and kwin exits with it
+    readonly property var exitCommand: greeter.getOptional("modes.greetd.exit", [], {
         overrideable: false
     })
 

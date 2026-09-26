@@ -13,353 +13,338 @@ Item {
     focus: true
 
     Keys.onPressed: event => {
-    // Disable Ctrl + C exiting
-    if (event.key === Qt.Key_C && (event.modifiers
-    & Qt.ControlModifier)) {
-    event.accepted = true;
-}
+        // Disable Ctrl + C exiting
+        if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier)) {
+            event.accepted = true;
+        }
 
-if (Settings.isDebug)
-{
-    switch (event.key) {
-    case Qt.Key_F12:
-    AuthManager.state = AuthManager.State.Success;
-    break;
-    case Qt.Key_Escape:
-    Qt.quit();
-    break;
-}
-}
-if (event.key === Qt.Key_F1)
-{
-    Quickshell.execDetached(["systemctl", "poweroff"]);
-    event.accepted = true;
-} else if (event.key === Qt.Key_F2) {
-Quickshell.execDetached(["systemctl", "reboot"]);
-event.accepted = true;
-}
-}
-
-Image {
-    id: backgroundImage
-    anchors.fill: parent
-    source: "../resources/lock.png"
-}
-
-Splash {
-    id: splash
-
-    width: 294 * Units.vh
-    height: 48 * Units.vh
-
-    anchors {
-        horizontalCenter: parent.horizontalCenter
-        verticalCenter: root.top
-        verticalCenterOffset: root.height * 0.406
-    }
-}
-
-Connections {
-    target: accents
-
-    function onFinished()
-    {
-        splash.start();
-    }
-}
-
-Accents {
-    id: accents
-
-    state: "splash"
-    states: [
-        State {
-            name: "splash"
-
-            AnchorChanges {
-                target: accents
-
-                anchors {
-                    top: splash.top
-                    right: splash.right
-                    bottom: splash.bottom
-                    left: splash.left
-                }
-            }
-        },
-        State {
-            name: "field_group"
-
-            AnchorChanges {
-                target: accents
-
-                anchors {
-                    top: fieldGroup.top
-                    right: fieldGroup.right
-                    bottom: fieldGroup.bottom
-                    left: fieldGroup.left
-                }
+        if (Settings.isDebug) {
+            switch (event.key) {
+            case Qt.Key_F12:
+                AuthManager.state = AuthManager.State.Success;
+                break;
+            case Qt.Key_Escape:
+                Qt.quit();
+                break;
             }
         }
-    ]
 
-    transitions: Transition {
-        id: accentTransition
-        from: "*"
-        to: "*"
-
-        AnchorAnimation {
-            duration: 400
-            easing.type: Easing.InOutCirc
+        if (powerHints.handleKey(event.key)) {
+            event.accepted = true;
         }
     }
-}
 
-FieldGroup {
-    id: fieldGroup
-
-    anchors {
-        top: splash.bottom
-        topMargin: 50 * Units.vh
-
-        horizontalCenter: root.horizontalCenter
-    }
-}
-
-Disclaimer {
-    id: disclaimer
-
-    anchors {
-        left: splash.left
-        right: splash.right
-        top: splash.bottom
-        topMargin: 25 * Units.vh + 50 * Units.vh + 85 * Units.vh + 15
-        * Units.vh
-        leftMargin: 2
-    }
-}
-
-Time {
-    id: time
-
-    anchors {
-        top: root.top
-        left: root.left
-        leftMargin: root.height * 0.05
-        topMargin: root.height * 0.05
-    }
-}
-
-PowerHints {
-    id: powerHints
-    anchors {
-        left: parent.left
-        leftMargin: Math.round(parent.width * 0.037)
-        bottom: parent.bottom
-        bottomMargin: Math.round(parent.height * 0.046)
-    }
-}
-
-Terminal {
-    id: terminal
-    logModel: TerminalManager.logModel
-    anchors {
-        left: parent.left
-        leftMargin: Math.round(parent.width * 0.037)
-        bottom: powerHints.top
-        bottomMargin: 8
-    }
-    width: 94.5 * terminal.rem
-}
-
-Status {
-    id: status
-    anchors {
-        right: root.right
-        top: root.top
-        rightMargin: (root.height * 0.0375) - status.barWidth  // visual fix
-        topMargin: root.height * 0.046
-    }
-}
-
-DeviceId {
-    id: device
-
-    height: root.height * 0.45
-
-    anchors {
-        right: root.right
-        bottom: root.bottom
-
-        rightMargin: root.height * 0.0375
-        bottomMargin: root.height * 0.046
-    }
-}
-
-SequentialAnimation {
-    id: startSplash
-    running: Settings.animationProfile(Settings.AnimationMode.All)
-
-    PropertyAction {
-        target: disclaimer
-        property: "opacity"
-        value: 0
+    Image {
+        id: backgroundImage
+        anchors.fill: parent
+        source: "../resources/lock.png"
     }
 
-    ScriptAction {
-        script: startSplash.pause()
-    }
+    Splash {
+        id: splash
 
-    // prevents race where pause allows further instructions to be executed
-    // if not time-based, e.g. splash.start()
-    PauseAnimation {}
+        width: 294 * Units.vh
+        height: 48 * Units.vh
 
-    ParallelAnimation {
-        ScriptAction {
-            script: accents.start()
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: root.top
+            verticalCenterOffset: root.height * 0.406
         }
+    }
 
-        NumberAnimation {
+    Connections {
+        target: accents
+
+        function onFinished() {
+            splash.start();
+        }
+    }
+
+    Accents {
+        id: accents
+
+        state: "splash"
+        states: [
+            State {
+                name: "splash"
+
+                AnchorChanges {
+                    target: accents
+
+                    anchors {
+                        top: splash.top
+                        right: splash.right
+                        bottom: splash.bottom
+                        left: splash.left
+                    }
+                }
+            },
+            State {
+                name: "field_group"
+
+                AnchorChanges {
+                    target: accents
+
+                    anchors {
+                        top: fieldGroup.top
+                        right: fieldGroup.right
+                        bottom: fieldGroup.bottom
+                        left: fieldGroup.left
+                    }
+                }
+            }
+        ]
+
+        transitions: Transition {
+            id: accentTransition
+            from: "*"
+            to: "*"
+
+            AnchorAnimation {
+                duration: 400
+                easing.type: Easing.InOutCirc
+            }
+        }
+    }
+
+    FieldGroup {
+        id: fieldGroup
+
+        anchors {
+            top: splash.bottom
+            topMargin: 50 * Units.vh
+
+            horizontalCenter: root.horizontalCenter
+        }
+    }
+
+    Disclaimer {
+        id: disclaimer
+
+        anchors {
+            left: splash.left
+            right: splash.right
+            top: splash.bottom
+            topMargin: 25 * Units.vh + 50 * Units.vh + 85 * Units.vh + 15 * Units.vh
+            leftMargin: 2
+        }
+    }
+
+    Time {
+        id: time
+
+        anchors {
+            top: root.top
+            left: root.left
+            leftMargin: root.height * 0.05
+            topMargin: root.height * 0.05
+        }
+    }
+
+    PowerHints {
+        id: powerHints
+        anchors {
+            left: parent.left
+            leftMargin: Math.round(parent.width * 0.037)
+            bottom: parent.bottom
+            bottomMargin: Math.round(parent.height * 0.046)
+        }
+    }
+
+    Terminal {
+        id: terminal
+        logModel: TerminalManager.logModel
+        anchors {
+            left: parent.left
+            leftMargin: Math.round(parent.width * 0.037)
+            bottom: powerHints.visible ? powerHints.top : parent.bottom
+            bottomMargin: powerHints.visible ? 8 * Units.vh : Math.round(parent.height * 0.046)
+        }
+        width: 94.5 * terminal.rem
+    }
+
+    Status {
+        id: status
+        anchors {
+            right: root.right
+            top: root.top
+            rightMargin: (root.height * 0.0375) - status.barWidth  // visual fix
+            topMargin: root.height * 0.046
+        }
+    }
+
+    DeviceId {
+        id: device
+
+        height: root.height * 0.45
+
+        anchors {
+            right: root.right
+            bottom: root.bottom
+
+            rightMargin: root.height * 0.0375
+            bottomMargin: root.height * 0.046
+        }
+    }
+
+    SequentialAnimation {
+        id: startSplash
+        running: Settings.animationProfile(Settings.AnimationMode.All)
+
+        PropertyAction {
             target: disclaimer
             property: "opacity"
-            to: 1
-            duration: 100
-            easing.type: Easing.InCubic
-        }
-    }
-}
-
-SequentialAnimation {
-    id: startupAnimation
-    running: Settings.animationProfile(Settings.AnimationMode.All)
-
-    // SECTION Setup
-
-    PropertyAction {
-        target: splash
-        property: "anchors.verticalCenterOffset"
-        value: root.height / 2
-    }
-    PropertyAction {
-        target: disclaimer
-        property: "anchors.topMargin"
-        value: 25 * Units.vh
-    }
-    PropertyAction {
-        target: fieldGroup
-        property: "opacity"
-        value: 0
-    }
-
-    ScriptAction {
-        script: startupAnimation.pause()
-    }
-
-    // SECTION Begin
-
-    ParallelAnimation {
-        id: slideApart
-
-        NumberAnimation {
-            target: splash
-            property: "anchors.verticalCenterOffset"
-            to: root.height * 0.406
-            duration: 500
-            easing.type: Easing.InOutCirc
+            value: 0
         }
 
-        NumberAnimation {
-            target: disclaimer
-            property: "anchors.topMargin"
-            to: 25 * Units.vh + fieldGroup.anchors.topMargin + 85
-            * Units.vh + 15 * Units.vh
-            duration: 500
-            easing.type: Easing.InOutCirc
+        ScriptAction {
+            script: startSplash.pause()
         }
 
-        SequentialAnimation {
-            PauseAnimation {
-                duration: 300
+        // prevents race where pause allows further instructions to be executed
+        // if not time-based, e.g. splash.start()
+        PauseAnimation {}
+
+        ParallelAnimation {
+            ScriptAction {
+                script: accents.start()
             }
 
             NumberAnimation {
-                target: fieldGroup
+                target: disclaimer
                 property: "opacity"
                 to: 1
-                duration: 200
-                easing.type: Easing.OutExpo
+                duration: 100
+                easing.type: Easing.InCubic
             }
         }
     }
 
-    onFinished: TerminalManager.unPause()
-}
+    SequentialAnimation {
+        id: startupAnimation
+        running: Settings.animationProfile(Settings.AnimationMode.All)
 
-SequentialAnimation {
-    id: exitAnimation
-    running: AuthManager.state === AuthManager.State.Success
+        // SECTION Setup
 
-    ScriptAction {
-        script: accents.state = "field_group"
-    }
-
-    PauseAnimation {
-        duration: 200
-    }
-
-    ScriptAction {
-        script: disclaimer.exit()
-    }
-    PauseAnimation {
-        duration: 200
-    }
-
-    ScriptAction {
-        script: fieldGroup.start()
-    }
-}
-
-Connections {
-    target: TerminalManager
-
-    function onPaused(marker: string)
-    {
-        if (Settings.animationProfile(Settings.AnimationMode.Reduced))
-        {
-            // startup sequence won't run so manually unpause
-            TerminalManager.unPause();
+        PropertyAction {
+            target: splash
+            property: "anchors.verticalCenterOffset"
+            value: root.height / 2
+        }
+        PropertyAction {
+            target: disclaimer
+            property: "anchors.topMargin"
+            value: 25 * Units.vh
+        }
+        PropertyAction {
+            target: fieldGroup
+            property: "opacity"
+            value: 0
         }
 
-        if (marker == "UI_INIT")
-        {
-            startSplash.resume();
+        ScriptAction {
+            script: startupAnimation.pause()
+        }
+
+        // SECTION Begin
+
+        ParallelAnimation {
+            id: slideApart
+
+            NumberAnimation {
+                target: splash
+                property: "anchors.verticalCenterOffset"
+                to: root.height * 0.406
+                duration: 500
+                easing.type: Easing.InOutCirc
+            }
+
+            NumberAnimation {
+                target: disclaimer
+                property: "anchors.topMargin"
+                to: 25 * Units.vh + fieldGroup.anchors.topMargin + 85 * Units.vh + 15 * Units.vh
+                duration: 500
+                easing.type: Easing.InOutCirc
+            }
+
+            SequentialAnimation {
+                PauseAnimation {
+                    duration: 300
+                }
+
+                NumberAnimation {
+                    target: fieldGroup
+                    property: "opacity"
+                    to: 1
+                    duration: 200
+                    easing.type: Easing.OutExpo
+                }
+            }
+        }
+
+        onFinished: TerminalManager.unPause()
+    }
+
+    SequentialAnimation {
+        id: exitAnimation
+        running: AuthManager.state === AuthManager.State.Success
+
+        ScriptAction {
+            script: accents.state = "field_group"
+        }
+
+        PauseAnimation {
+            duration: 200
+        }
+
+        ScriptAction {
+            script: disclaimer.exit()
+        }
+        PauseAnimation {
+            duration: 200
+        }
+
+        ScriptAction {
+            script: fieldGroup.start()
         }
     }
-}
 
-Connections {
-    target: splash
+    Connections {
+        target: TerminalManager
 
-    function onProgressBarMidway()
-    {
-        time.start();
-        device.start();
-        status.start();
-        powerHints.start();
+        function onPaused(marker: string) {
+            if (Settings.animationMode < Settings.AnimationMode.All) {
+                // startup sequence won't run so manually unpause
+                TerminalManager.unPause();
+            }
+
+            if (marker == "UI_INIT") {
+                startSplash.resume();
+            }
+        }
     }
 
-    function onRevealFinished()
-    {
-        startupAnimation.resume();
-    }
-}
+    Connections {
+        target: splash
 
-Connections {
-    target: fieldGroup
+        function onProgressBarMidway() {
+            time.start();
+            device.start();
+            status.start();
+            powerHints.start();
+        }
 
-    function onFinished()
-    {
-        AuthManager.finish();
+        function onRevealFinished() {
+            startupAnimation.resume();
+        }
     }
-}
+
+    Connections {
+        target: fieldGroup
+
+        function onFinished() {
+            AuthManager.finish();
+        }
+    }
 }

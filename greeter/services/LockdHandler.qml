@@ -21,8 +21,8 @@ Singleton {
     PamContext {
         id: pam
 
-        user: AuthManager.user
-
+        // no `user`: PAM authenticates the owner of the locked session (current uid),
+        // never whatever is typed into the username field
         config: "login"
 
         onCompleted: result => {

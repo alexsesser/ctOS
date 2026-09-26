@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 import qs.common
+import qs.greeter.config
 
 Singleton {
     id: sessionManager
@@ -14,132 +15,110 @@ Singleton {
         name: "SessionManager"
     }
 
+    readonly property var fallback: {
+        "name": "KDE Plasma",
+        "exec": "startplasma-wayland"
+    }
+
     property var sessions: []
     property int currentIndex: 0
 
-    readonly property var current: sessions.length > 0
-        ? sessions[currentIndex]
-        : { name: "KDE Plasma", exec: "startplasma-wayland" }
+    readonly property var current: sessions.length > 0 ? sessions[currentIndex] : fallback
 
     function next() {
-        if (sessions.length <= 1) return
-        currentIndex = (currentIndex + 1) % sessions.length
-        logger.debug(`Session switched to: ${current.name}`)
+        if (sessions.length <= 1)
+            return;
+        currentIndex = (currentIndex + 1) % sessions.length;
+        logger.debug(`Session switched to: ${current.name}`);
     }
 
     function prev() {
-        if (sessions.length <= 1) return
-        currentIndex = (currentIndex - 1 + sessions.length) % sessions.length
-        logger.debug(`Session switched to: ${current.name}`)
+        if (sessions.length <= 1)
+            return;
+        currentIndex = (currentIndex - 1 + sessions.length) % sessions.length;
+        logger.debug(`Session switched to: ${current.name}`);
     }
 
-    // Step 1: find .desktop session files
+    // Prints one `kind<TAB>name<TAB>exec` line per entry:
+    // - `session`: [Desktop Entry] of /usr/share/wayland-sessions/*.desktop,
+    //   without Hidden/NoDisplay ones. X11 sessions are skipped: greetd starts
+    //   them without an X server.
+    // - `shell`: executable shells from /etc/shells, deduplicated by binary name,
+    //   without restricted and system shells.
     Process {
-        id: findProcess
+        id: finder
 
-        command: ["sh", "-c",
-            "find /usr/share/wayland-sessions /usr/share/xsessions -name '*.desktop' 2>/dev/null"
-        ]
+        property var found: []
+
+        command: ["sh", "-c", `
+for f in /usr/share/wayland-sessions/*.desktop; do
+    [ -f "$f" ] || continue
+    awk '
+        /^\\[/ { section = ($0 == "[Desktop Entry]"); next }
+        !section { next }
+        /^Name=/ && name == "" { name = substr($0, 6) }
+        /^Exec=/ && cmd == "" { cmd = substr($0, 6) }
+        /^(Hidden|NoDisplay)=true/ { skip = 1 }
+        END { if (!skip && name != "" && cmd != "") printf "session\\t%s\\t%s\\n", name, cmd }
+    ' "$f"
+done
+
+grep -v -e '^#' -e '^$' /etc/shells 2>/dev/null | while read -r s; do
+    [ -x "$s" ] || continue
+    name=$(basename "$s")
+    case "$name" in rbash|rzsh|rsh|git-shell|nologin|systemd-*) continue ;; esac
+    printf '%s\\t%s\\n' "$name" "$s"
+done | sort -t "$(printf '\\t')" -k1,1 -u | sed 's/^/shell\\t/'
+`]
 
         stdout: SplitParser {
             onRead: data => {
-                const path = data.trim()
-                if (path !== "") fileLoader.paths.push(path)
-            }
-        }
+                const parts = data.split("\t");
+                if (parts.length !== 3)
+                    return;
 
-        onExited: fileLoader.loadNext()
-    }
+                const [kind, rawName, exec] = parts.map(part => part.trim());
+                const name = kind === "shell" ? rawName.toUpperCase() : rawName;
 
-    // Step 2: read each .desktop file
-    QtObject {
-        id: fileLoader
+                if (finder.found.some(s => s.name.toUpperCase() === name.toUpperCase()))
+                    return;
 
-        property var paths: []
-        property int index: 0
-        property var parsed: []
-
-        function loadNext() {
-            if (index >= paths.length) {
-                // All .desktop done — find shells
-                shellFinder.running = true
-                return
-            }
-            reader.path = paths[index]
-            reader.reload()
-        }
-
-        function onFileRead(text) {
-            const nameMatch = text.match(/^Name=(.+)$/m)
-            const execMatch = text.match(/^Exec=(.+)$/m)
-            if (nameMatch && execMatch) {
-                parsed.push({
-                    name: nameMatch[1].trim(),
-                    exec: execMatch[1].trim()
-                })
-            }
-            index++
-            loadNext()
-        }
-    }
-
-    FileView {
-        id: reader
-        onTextChanged: {
-            if (path !== "") fileLoader.onFileRead(reader.text())
-        }
-    }
-
-    // Step 3: find available shells from /etc/shells
-    // Deduplicates by binary name, skips restricted and system shells
-    Process {
-        id: shellFinder
-
-        command: ["sh", "-c",
-            "cat /etc/shells 2>/dev/null | grep -v '^#' | grep -v '^$' | while read s; do " +
-            "  [ -x \"$s\" ] || continue; " +
-            "  name=$(basename \"$s\"); " +
-            "  case \"$name\" in rbash|rzsh|rsh|git-shell|systemd-*) continue;; esac; " +
-            "  echo \"$name|$s\"; " +
-            "done | sort -t'|' -k1,1 -u"
-        ]
-
-        stdout: SplitParser {
-            onRead: data => {
-                const parts = data.trim().split("|")
-                if (parts.length !== 2) return
-
-                const name = parts[0].toUpperCase()
-                const exec = parts[1]
-
-                const exists = fileLoader.parsed.some(s =>
-                    s.name.toUpperCase() === name
-                )
-
-                if (!exists) {
-                    fileLoader.parsed.push({ name: name, exec: exec })
-                    logger.debug(`Found shell: ${name} -> ${exec}`)
-                }
+                finder.found.push({
+                    name,
+                    exec
+                });
             }
         }
 
         onExited: {
-            if (fileLoader.parsed.length > 0) {
-                sessionManager.sessions = fileLoader.parsed
-                logger.info(`Loaded ${sessionManager.sessions.length} session(s):`)
-                for (const s of sessionManager.sessions) {
-                    logger.info(`  ${s.name} -> ${s.exec}`)
-                }
-            } else {
-                logger.warn("No sessions found, using fallback")
-                sessionManager.sessions = [
-                    { name: "KDE Plasma", exec: "startplasma-wayland" }
-                ]
+            if (finder.found.length === 0) {
+                logger.warn("No sessions found, using fallback");
+                sessionManager.sessions = [sessionManager.fallback];
+                return;
             }
+
+            sessionManager.sessions = finder.found;
+            sessionManager.currentIndex = sessionManager._defaultIndex();
+
+            logger.info(`Loaded ${sessionManager.sessions.length} session(s):`);
+            for (const s of sessionManager.sessions) {
+                logger.info(`  ${s.name} -> ${s.exec}`);
+            }
+            logger.info(`Default session: ${sessionManager.current.name}`);
         }
     }
 
+    // session whose Exec contains modes.greetd.launch, otherwise the first one
+    function _defaultIndex() {
+        const launch = (Settings.launchCommand || []).join(" ");
+        if (!launch)
+            return 0;
+
+        const index = sessions.findIndex(s => s.exec.includes(launch));
+        return index >= 0 ? index : 0;
+    }
+
     Component.onCompleted: {
-        findProcess.running = true
+        finder.running = true;
     }
 }

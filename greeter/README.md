@@ -1,10 +1,13 @@
+> **Note:** this document describes the upstream setup (Hyprland/Niri/cage, `uwsm`).
+> For Arch Linux + KDE Plasma (`kwin_wayland`) use `install.sh` and the [root README](../README.md).
+
 ## Dependencies
 
 To run the greeter, you must have the following core components installed on your system:
 
 ### Required
 
-- **[Quickshell](https://www.google.com/search?q=https://outfoxxed.github.io/quickshell/):** The engine used to render the QML interface and provide the necessary Wayland desktop shell integrations.
+- **[Quickshell](https://quickshell.org/):** The engine used to render the QML interface and provide the necessary Wayland desktop shell integrations.
 
 - **[greetd](https://git.sr.ht/~kennylevinsen/greetd):** The login daemon responsible for session management and user authentication.
 

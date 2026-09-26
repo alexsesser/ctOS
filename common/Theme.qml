@@ -13,9 +13,11 @@ Singleton {
     readonly property color gray300: "#c3c3c3"
     readonly property color gray500: "#7a7a7a"
     readonly property color gray800: "#0E0E0E"
+    readonly property color gray900: "#0A0A0A"
 
     readonly property color accentGreen: "#1bfd9c"
     readonly property color accentRed: "#fc3e38"
+    readonly property color accentLime: "#7CFC00"
 
     // SECTION Theme
 
@@ -34,6 +36,9 @@ Singleton {
 
     readonly property color success: accentGreen
     readonly property color error: accentRed
+
+    readonly property color buttonFocus: accentLime
+    readonly property color buttonFocusText: gray900
 
     // SECTION Fonts
 

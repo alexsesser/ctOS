@@ -14,6 +14,20 @@ ColumnLayout {
     width: 294 * Units.vh
     spacing: 0
 
+    // Tab / Shift+Tab: password → username → session → LOGIN → password.
+    // В lockd имя и сессия фиксированы, поэтому остаются только пароль и LOGIN.
+    readonly property var _focusChain: Settings.isLockd ? [passwordField, loginScope] : [passwordField, userInput, sessionRow, loginScope]
+
+    function _moveFocus(from, step) {
+        const chain = _focusChain;
+        const index = chain.indexOf(from);
+        chain[(index + step + chain.length) % chain.length].forceActiveFocus();
+    }
+
+    function _login() {
+        AuthManager.respond(passwordField.text);
+    }
+
     // SECTION Username row
     RowLayout {
         id: userRow
@@ -39,6 +53,10 @@ ColumnLayout {
             text: AuthManager.user
             placeholderText: "username"
 
+            // lockd: разблокировать можно только сессию текущего пользователя
+            readOnly: Settings.isLockd
+            activeFocusOnPress: !readOnly
+
             Layout.fillWidth: true
             Layout.maximumWidth: fieldGroup.width - barcode.width - userRow.spacing
             clip: true
@@ -57,11 +75,16 @@ ColumnLayout {
 
             cursorVisible: false
 
-            onTextChanged: AuthManager.user = text
+            onTextChanged: {
+                if (!readOnly) {
+                    AuthManager.user = text;
+                }
+            }
 
-            // Tab цикл: username → session
-            Keys.onTabPressed: sessionRow.forceActiveFocus()
-            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
+            Keys.onTabPressed: fieldGroup._moveFocus(userInput, 1)
+            Keys.onBacktabPressed: fieldGroup._moveFocus(userInput, -1)
+            Keys.onReturnPressed: fieldGroup._login()
+            Keys.onEnterPressed: fieldGroup._login()
 
             cursorDelegate: Text {
                 id: userCursor
@@ -81,13 +104,13 @@ ColumnLayout {
 
                 Connections {
                     target: userInput
-                    function onFocusChanged() {
-                        if (userInput.focus) {
-                            userCursor.opacity = 1
-                            userBlinkTimer.start()
+                    function onActiveFocusChanged() {
+                        if (userInput.activeFocus) {
+                            userCursor.opacity = 1;
+                            userBlinkTimer.start();
                         } else {
-                            userBlinkTimer.stop()
-                            userCursor.opacity = 0
+                            userBlinkTimer.stop();
+                            userCursor.opacity = 0;
                         }
                     }
                 }
@@ -109,29 +132,27 @@ ColumnLayout {
         color: {
             switch (AuthManager.state) {
             case AuthManager.State.Loading:
-                return Theme.textPrimaryDim
+                return Theme.textPrimaryDim;
             case AuthManager.State.Success:
             case AuthManager.State.Finish:
-                return Theme.success
+                return Theme.success;
             case AuthManager.State.Failed:
-                return Theme.error
+                return Theme.error;
             default:
-                return Theme.textPrimary
+                return Theme.textPrimary;
             }
         }
 
         z: 5
 
-        onAccepted: {
-            AuthManager.respond(passwordField.text)
-        }
+        onAccepted: fieldGroup._login()
 
         Component.onCompleted: {
-            passwordField.forceActiveFocus()
+            passwordField.forceActiveFocus();
         }
 
-        // Tab цикл: password → username
-        Keys.onTabPressed: userInput.forceActiveFocus()
+        Keys.onTabPressed: fieldGroup._moveFocus(passwordField, 1)
+        Keys.onBacktabPressed: fieldGroup._moveFocus(passwordField, -1)
 
         Rectangle {
             id: progress
@@ -210,12 +231,15 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 26 * Units.vh
 
-            // Tab цикл: session → login
-            Keys.onTabPressed: loginScope.forceActiveFocus()
+            // lockd разблокирует уже запущенную сессию, выбирать нечего
+            visible: !Settings.isLockd
+
+            Keys.onTabPressed: fieldGroup._moveFocus(sessionRow, 1)
+            Keys.onBacktabPressed: fieldGroup._moveFocus(sessionRow, -1)
 
             // Enter выполняет вход
-            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
-            Keys.onEnterPressed: AuthManager.respond(passwordField.text)
+            Keys.onReturnPressed: fieldGroup._login()
+            Keys.onEnterPressed: fieldGroup._login()
 
             // Стрелки для смены сессии
             Keys.onLeftPressed: SessionManager.prev()
@@ -244,6 +268,13 @@ ColumnLayout {
                         family: Settings.fontFamily
                         pixelSize: 16
                     }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: SessionManager.prev()
+                    }
                 }
 
                 Text {
@@ -267,6 +298,13 @@ ColumnLayout {
                         family: Settings.fontFamily
                         pixelSize: 16
                     }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: SessionManager.next()
+                    }
                 }
             }
         }
@@ -277,19 +315,26 @@ ColumnLayout {
 
             Layout.preferredHeight: 26 * Units.vh
             Layout.preferredWidth: parent.width * 0.38
+            Layout.alignment: Qt.AlignRight
 
-            // Tab цикл: login → password (замыкание)
-            Keys.onTabPressed: passwordField.forceActiveFocus()
+            Keys.onTabPressed: fieldGroup._moveFocus(loginScope, 1)
+            Keys.onBacktabPressed: fieldGroup._moveFocus(loginScope, -1)
 
             // Enter когда кнопка в фокусе — логин
-            Keys.onReturnPressed: AuthManager.respond(passwordField.text)
-            Keys.onEnterPressed: AuthManager.respond(passwordField.text)
+            Keys.onReturnPressed: fieldGroup._login()
+            Keys.onEnterPressed: fieldGroup._login()
 
             Rectangle {
                 id: loginButton
 
                 anchors.fill: parent
-                color: loginScope.activeFocus ? "#7CFC00" : Theme.ctosGray
+                color: loginScope.activeFocus ? Theme.buttonFocus : Theme.ctosGray
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: fieldGroup._login()
+                }
 
                 transform: [
                     Scale {
@@ -307,7 +352,7 @@ ColumnLayout {
 
                     text: "LOGIN"
                     visible: AuthManager.state !== AuthManager.State.Loading
-                    color: loginScope.activeFocus ? "#0a0a0a" : Theme.background
+                    color: loginScope.activeFocus ? Theme.buttonFocusText : Theme.background
 
                     anchors {
                         horizontalCenter: parent.horizontalCenter
@@ -437,6 +482,6 @@ ColumnLayout {
     }
 
     function start() {
-        animation.start()
+        animation.start();
     }
 }

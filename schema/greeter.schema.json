@@ -48,22 +48,27 @@
           "properties": {
             "animations": { "$ref": "#/$defs/animationProfile" },
             "exit": {
-              "description": "The command that is run to exit from the minimal compositor setup.",
+              "description": "Optional command run after the session is launched. Usually not needed: Quickshell exits after launch and kwin exits with it (--exit-with-session).",
               "type": "array",
-              "items": { "type": "string" },
-              "minItems": 1
+              "items": { "type": "string" }
             },
             "launch": {
-              "description": "The command that is run after successful login, this should launch your main session (Hyprland, etc.)",
+              "description": "Preselected session: the first session whose Exec contains this command (e.g. startplasma-wayland).",
               "type": "array",
               "items": { "type": "string" },
               "minItems": 1
             }
-          },
-          "required": ["exit", "launch"]
+          }
         },
         "lockd": {
           "title": "Lockd Mode Settings",
+          "type": "object",
+          "properties": {
+            "animations": { "$ref": "#/$defs/animationProfile" }
+          }
+        },
+        "kiosk": {
+          "title": "Kiosk Mode Settings",
           "type": "object",
           "properties": {
             "animations": { "$ref": "#/$defs/animationProfile" }
@@ -76,16 +81,14 @@
             "animations": { "$ref": "#/$defs/animationProfile" }
           }
         }
-      },
-      "required": ["greetd"]
+      }
     }
   },
-  "required": ["modes"],
 
   "$defs": {
     "animationProfile": {
       "type": "string",
-      "enum": ["reduced", "all"],
+      "enum": ["none", "reduced", "all"],
       "description": "UI animation profile: 'all' for full transitions, 'reduced' for no splash."
     }
   }

@@ -50,31 +50,31 @@ TextField {
 
             function onActiveFocusChanged() {
                 if (passwordField.activeFocus) {
-                    cursor.opacity = 1
-                    blinkTimer.start()
+                    cursor.opacity = 1;
+                    blinkTimer.start();
                 } else {
-                    blinkTimer.stop()
-                    cursor.opacity = 0
+                    blinkTimer.stop();
+                    cursor.opacity = 0;
                 }
             }
 
             function onEnabledChanged() {
                 if (!passwordField.enabled) {
-                    blinkTimer.stop()
-                    cursor.opacity = 0
+                    blinkTimer.stop();
+                    cursor.opacity = 0;
                 }
             }
 
             function onTextEdited() {
-                cursor.opacity = 1
-                blinkTimer.restart()
+                cursor.opacity = 1;
+                blinkTimer.restart();
             }
         }
 
         Component.onCompleted: {
             if (passwordField.activeFocus) {
-                cursor.opacity = 1
-                blinkTimer.start()
+                cursor.opacity = 1;
+                blinkTimer.start();
             }
         }
     }
@@ -88,6 +88,6 @@ TextField {
     }
 
     Component.onDestruction: {
-        passwordField.focus = false
+        passwordField.focus = false;
     }
 }
