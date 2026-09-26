@@ -38,6 +38,7 @@ install_dependencies() {
     "kwin"
     "quickshell"
     "ttf-jetbrains-mono-nerd"
+    "curl"
   )
 
   # `pacman -T` also accepts packages that provide the dependency (e.g. quickshell-git)
