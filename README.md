@@ -13,6 +13,7 @@ A linux rice inspired by the ctOS (Central Operating System) from the Watch Dogs
 - **Keyboard navigation** — Tab / Shift+Tab cycles password → username → session → LOGIN, Enter logs in from any of them
 - **Power keys** — `F1` shutdown, `F2` reboot on the login screen only (press twice to confirm)
 - **Lock screen** — in `lockd` mode the username is fixed to the session owner
+- **Real device data** — NODE shows the public IPv4 address with leading zeros (`031.076.099.236`), requested from api.ipify.org / icanhazip.com / ifconfig.me (with a VPN it's the VPN exit address); offline it shows the last known address (dimmed, stored in `/var/lib/ctos`) or a random one. `HOST:` shows the hostname. The label next to the barcode encodes the device: `ARCH-<cores>C-<RAM>G-K<kernel>|<hash>`, where the hash is 128 bits of SHA-256 over machine-id, board, CPU model and MAC addresses of physical network interfaces
 - **Custom cursor blinking** — cursor stops blinking when a field loses focus
 - **Username field overflow** — long usernames scroll left instead of expanding the layout
 - **KDE compositor** — uses `kwin_wayland` instead of Hyprland/Niri

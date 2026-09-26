@@ -5,6 +5,7 @@ import Quickshell.Services.UPower
 
 import qs.common
 import qs.greeter.config
+import qs.greeter.services
 
 Surface {
     id: root
@@ -60,7 +61,35 @@ Surface {
             InfoField {
                 Layout.fillWidth: true
                 label: "NODE"
-                value: Settings.fakeStatus.node
+                value: DeviceInfo.ip
+                // no network: last known or random address
+                fieldValueOpacity: DeviceInfo.ipSource === "live" ? 1 : 0.5
+            }
+        }
+
+        RowLayout {
+            spacing: 6
+            Layout.maximumWidth: row.width
+
+            Text {
+                text: "HOST:"
+                color: Theme.textPrimaryDim
+                font {
+                    family: Settings.fontFamily
+                    pixelSize: 12
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: DeviceInfo.hostname
+                elide: Text.ElideRight
+                color: Theme.textPrimary
+                font {
+                    family: Settings.fontFamily
+                    pixelSize: 12
+                    weight: 500
+                }
             }
         }
     }

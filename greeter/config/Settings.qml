@@ -112,9 +112,9 @@ Singleton {
         "fullName": "Blume Admin"
     })
 
+    // NODE (IP) and HOST are real, see DeviceInfo
     readonly property var fakeStatus: greeter.getOptional("fakeStatus", {
-        "env": "Workstation",
-        "node": "109.389.013.301"
+        "env": "Workstation"
     })
 
     readonly property string fontFamily: greeter.getOptional("fontFamily", Theme.fontFamily)

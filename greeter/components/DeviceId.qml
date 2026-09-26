@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import qs.greeter.config
+import qs.greeter.services
 import qs.common
 
 Row {
@@ -35,18 +36,38 @@ Row {
             Layout.fillHeight: true
         }
 
-        Image {
+        // vertical label along the barcode: device code | device id (DeviceInfo)
+        Item {
             id: deviceText
-            source: "../resources/device-text.svg"
 
             Layout.bottomMargin: 5
             Layout.topMargin: 20 * Units.vh
             Layout.fillHeight: true
-
-            fillMode: Image.PreserveAspectFit
+            Layout.preferredWidth: deviceLabel.contentHeight
 
             transform: Translate {
                 id: deviceTextTranslate
+            }
+
+            Text {
+                id: deviceLabel
+
+                anchors.centerIn: parent
+                width: parent.height
+                rotation: -90
+
+                text: DeviceInfo.deviceLabel
+                color: Theme.textPrimaryDim
+                // rotated -90°: starts at the bottom like the original label
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+
+                font {
+                    family: Settings.fontFamily
+                    pixelSize: 64
+                }
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: 6
             }
         }
 

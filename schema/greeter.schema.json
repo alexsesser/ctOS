@@ -31,10 +31,9 @@
     "fakeStatus": {
       "title": "Fake Status",
       "type": "object",
-      "description": "Configure the status component in the top right.",
+      "description": "Configure the status component in the top right. NODE (public IP address) and HOST are taken from the device.",
       "properties": {
-        "env": { "type": "string" },
-        "node": { "type": "string" }
+        "env": { "type": "string", "description": "Shown when there is no battery." }
       }
     },
     "modes": {

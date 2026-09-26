@@ -110,7 +110,7 @@ defaults = {
     "monitor": monitor,
     "fontFamily": "JetBrainsMono Nerd Font",
     "fakeIdentity": {"id": "XYZ-843", "class": "L5_PROV", "fullName": "Blume Admin"},
-    "fakeStatus": {"env": "Workstation", "node": "109.389.013.301"},
+    "fakeStatus": {"env": "Workstation"},
     "modes": {
         "greetd": {"animations": "all", "launch": ["startplasma-wayland"]},
         "lockd": {"animations": "reduced"},
@@ -140,6 +140,9 @@ config["$schema"] = defaults["$schema"]
 greetd = config.get("modes", {}).get("greetd", {})
 if greetd.get("exit") in (["pkill", "kwin_wayland"], ["pkill", "quickshell"]):
     del greetd["exit"]
+
+# NODE shows the real IP address now
+config.get("fakeStatus", {}).pop("node", None)
 
 print(json.dumps(config, indent=2, ensure_ascii=False))
 EOF
@@ -244,6 +247,19 @@ install_greeter_kwin_conf() {
   write_file "$(generate_kwin_conf)" "$GREETER_KWIN_FILEPATH" 755
 }
 
+# Writable state for the greeter user (its home is /): last known IP address
+install_state_dir() {
+  local state_dir="/var/lib/$NAMESPACE"
+
+  if ! id greeter &>/dev/null; then
+    echo "[WARN] user 'greeter' not found, skipping $state_dir"
+    return
+  fi
+
+  sudo install -d -o greeter -g greeter -m 755 "$state_dir"
+  echo "[ITEM]     ok: $state_dir (owner greeter)"
+}
+
 sync_project_files() {
   local existed=0
   [[ -d "$INSTALL_DIR" ]] && existed=1
@@ -312,6 +328,8 @@ install_greeter_config
 echo
 
 install_greeter_kwin_conf
+
+install_state_dir
 
 sync_project_files
 

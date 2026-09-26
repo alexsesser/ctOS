@@ -9,8 +9,7 @@
     "fullName": "Blume Admin"
   },
   "fakeStatus": {
-    "env": "Workstation",
-    "node": "109.389.013.301"
+    "env": "Workstation"
   },
   "modes": {
     "greetd": {
