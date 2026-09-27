@@ -1,0 +1,240 @@
+# ctOS boot splash (Plymouth script plugin).
+#
+# The logo is laid out exactly like the ctOS greeter's splash at its starting
+# position (vertically centered), so the hand-over to the greeter doesn't jump.
+# Geometry is in pixels of a 1080p screen, scaled by screen height / 1080.
+# Text images are rendered at 2x by make-assets.sh.
+#
+# Esc switches Plymouth to the text boot log (built into plymouthd).
+
+BACKGROUND = 14 / 255; # #0E0E0E
+Window.SetBackgroundTopColor(BACKGROUND, BACKGROUND, BACKGROUND);
+Window.SetBackgroundBottomColor(BACKGROUND, BACKGROUND, BACKGROUND);
+
+screen_x = Window.GetX();
+screen_y = Window.GetY();
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+s = screen_h / 1080;
+
+fun max(a, b) {
+    if (a > b)
+        return a;
+    return b;
+}
+
+fun min(a, b) {
+    if (a < b)
+        return a;
+    return b;
+}
+
+# image scaled to an exact size (at least 1x1)
+fun sized(image, w, h) {
+    return image.Scale(max(1, Math.Int(w)), max(1, Math.Int(h)));
+}
+
+# 2x text image scaled to this screen
+fun text_image(file) {
+    local.image = Image(file);
+    return sized(image, image.GetWidth() * s / 2, image.GetHeight() * s / 2);
+}
+
+fun sprite_at(image, x, y, z) {
+    local.sprite = Sprite(image);
+    sprite.SetPosition(Math.Int(x), Math.Int(y), z);
+    return sprite;
+}
+
+# same background grid as the greeter, stretched like its Image
+background = Sprite(sized(Image("background.png"), screen_w, screen_h));
+background.SetPosition(screen_x, screen_y, -10);
+
+# SECTION Mode
+
+mode = "boot";
+if (Plymouth.GetMode() == "shutdown")
+    mode = "shutdown";
+if (Plymouth.GetMode() == "reboot")
+    mode = "reboot";
+
+# SECTION Logo: [ ███████ CT ] OS
+
+box.w = 294 * s;
+box.h = 48 * s;
+box.x = screen_x + screen_w / 2 - box.w / 2;
+box.y = screen_y + screen_h / 2 - box.h / 2;
+
+bar_image = Image("bar.png");
+bar_width = 215 * s;
+bar = sprite_at(sized(bar_image, 1, box.h), box.x, box.y, 1);
+bar.SetOpacity(0);
+
+ct = sprite_at(sized(Image("ct.png"), 33 * s, 23 * s), box.x + 171 * s, box.y + 21 * s, 2);
+ct.SetOpacity(0);
+
+os = sprite_at(sized(Image("os.png"), 64 * s, 47 * s), box.x + box.w - 6 * s - 64 * s, box.y - 1 * s, 2);
+os.SetOpacity(0);
+
+# corner accents: 4px, 18px/10px outside the logo (not scaled, as in the greeter)
+accent_tl = sprite_at(sized(Image("accent-tl.png"), 4, 4), box.x - 18, box.y - 10, 2);
+accent_tr = sprite_at(sized(Image("accent-tr.png"), 4, 4), box.x + box.w + 14, box.y - 10, 2);
+accent_bl = sprite_at(sized(Image("accent-bl.png"), 4, 4), box.x - 18, box.y + box.h + 6, 2);
+accent_br = sprite_at(sized(Image("accent-br.png"), 4, 4), box.x + box.w + 14, box.y + box.h + 6, 2);
+
+# SECTION Progress line, status and percentage
+
+line.x = box.x;
+line.y = box.y + box.h + 24 * s;
+line.h = max(2, 2 * s);
+
+track = sprite_at(sized(Image("track.png"), box.w, line.h), line.x, line.y, 1);
+track.SetOpacity(0.35);
+progress = sprite_at(sized(bar_image, 1, line.h), line.x, line.y, 2);
+progress.SetOpacity(0);
+
+status_y = line.y + line.h + 8 * s;
+for (i = 0; i < 4; i++)
+    status_images[i] = text_image("status-" + mode + "-" + i + ".png");
+status = sprite_at(status_images[0], box.x, status_y, 2);
+
+for (i = 0; i < 10; i++)
+    digit_images[i] = text_image("digit-" + i + ".png");
+digit_w = digit_images[0].GetWidth();
+hundreds = sprite_at(digit_images[1], box.x + box.w - 3 * digit_w, status_y, 2);
+hundreds.SetOpacity(0);
+tens = sprite_at(digit_images[0], box.x + box.w - 2 * digit_w, status_y, 2);
+ones = sprite_at(digit_images[0], box.x + box.w - digit_w, status_y, 2);
+
+if (mode != "boot") {
+    # no meaningful progress when shutting down
+    track.SetOpacity(0);
+    tens.SetOpacity(0);
+    ones.SetOpacity(0);
+}
+
+# SECTION Password prompt (encrypted disks)
+
+password_label = sprite_at(text_image("password.png"), box.x, status_y, 3);
+password_label.SetOpacity(0);
+bullet_image = text_image("bullet.png");
+bullets_shown = 0;
+
+fun show_password(prompt, count) {
+    global.password_mode = 1;
+    status.SetOpacity(0);
+    hundreds.SetOpacity(0);
+    tens.SetOpacity(0);
+    ones.SetOpacity(0);
+    password_label.SetOpacity(1);
+
+    local.x = box.x + password_label.GetImage().GetWidth() + 8 * s;
+    local.max_bullets = Math.Int((box.x + box.w - x) / bullet_image.GetWidth());
+    for (local.i = 0; i < max(count, global.bullets_shown); i++) {
+        if (!global.bullets[i])
+            global.bullets[i] = sprite_at(bullet_image, x + i * bullet_image.GetWidth(), status_y, 3);
+        if (i < count && i < max_bullets)
+            global.bullets[i].SetOpacity(1);
+        else
+            global.bullets[i].SetOpacity(0);
+    }
+    global.bullets_shown = count;
+}
+
+fun show_normal() {
+    if (!global.password_mode)
+        return;
+    global.password_mode = 0;
+    password_label.SetOpacity(0);
+    for (local.i = 0; i < global.bullets_shown; i++)
+        global.bullets[i].SetOpacity(0);
+    status.SetOpacity(1);
+    if (mode == "boot") {
+        tens.SetOpacity(1);
+        ones.SetOpacity(1);
+    }
+}
+
+Plymouth.SetDisplayPasswordFunction(show_password);
+Plymouth.SetDisplayNormalFunction(show_normal);
+
+# SECTION Hint: bottom left, where the greeter shows [F1]/[F2]
+
+hint_image = text_image("hint.png");
+hint = sprite_at(hint_image, screen_x + screen_w * 0.037, screen_y + screen_h * (1 - 0.046) - hint_image.GetHeight(), 2);
+hint.SetOpacity(0.8);
+
+# SECTION Animation
+
+target_progress = 0;
+shown_progress = 0;
+frame = 0;
+
+# `value` comes from /var/lib/plymouth/boot-duration: the share of the previous
+# boot at which each service started (without it, i.e. on the first boot after
+# install, Plymouth guesses and stays low). Snap to the end near the finish.
+Plymouth.SetBootProgressFunction(fun (duration, value) {
+    if (value > 0.97)
+        value = 1;
+    global.target_progress = min(1, max(global.target_progress, value));
+});
+
+# systemd reports every started unit; user sessions are permitted right before
+# Plymouth quits and the greeter starts, so the boot is done
+fun on_status(status) {
+    if (status == "systemd-user-sessions.service")
+        global.target_progress = 1;
+}
+Plymouth.SetUpdateStatusFunction(on_status);
+
+# 50 frames per second
+Plymouth.SetRefreshFunction(fun () {
+    global.frame++;
+    local.t = global.frame / 50;
+
+    # reveal, a short version of the greeter's splash: bar grows, then OS, then CT
+    local.reveal = min(1, t / 0.6);
+    local.eased = 1 - (1 - reveal) * (1 - reveal) * (1 - reveal);
+    bar.SetImage(sized(bar_image, bar_width * eased, box.h));
+    bar.SetOpacity(1);
+    if (t > 0.65)
+        os.SetOpacity(1);
+    if (t > 0.8)
+        ct.SetOpacity(min(1, (t - 0.8) / 0.1));
+
+    # status dots: 1 → 3 every 0.9 s, like the greeter's "INITIALIZING..."
+    if (!global.password_mode)
+        status.SetImage(status_images[1 + Math.Int(t / 0.3) % 3]);
+
+    if (mode != "boot")
+        return;
+
+    # catch up quickly: the last services start right before Plymouth quits
+    global.shown_progress += (global.target_progress - global.shown_progress) * 0.25;
+    if (global.target_progress - global.shown_progress < 0.005)
+        global.shown_progress = global.target_progress;
+    show_progress(global.shown_progress);
+});
+
+fun show_progress(value) {
+    progress.SetImage(sized(bar_image, box.w * value, line.h));
+    progress.SetOpacity(1);
+
+    # like the greeter: two digits, "100" at the end
+    local.percent = min(100, Math.Int(value * 100));
+    if (percent == 100) {
+        hundreds.SetOpacity(1);
+        tens.SetImage(digit_images[0]);
+        ones.SetImage(digit_images[0]);
+    } else {
+        hundreds.SetOpacity(0);
+        tens.SetImage(digit_images[Math.Int(percent / 10)]);
+        ones.SetImage(digit_images[percent % 10]);
+    }
+}
+
+# the boot is done when Plymouth quits: show the full bar in the last frame
+Plymouth.SetQuitFunction(fun () {
+    if (mode == "boot")
+        show_progress(1);
+});

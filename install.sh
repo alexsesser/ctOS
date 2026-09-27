@@ -19,6 +19,18 @@ GREETER_KWIN_FILEPATH="$CONFIG_DIR/greeter.kwin.conf"
 # user the installer runs for (also when started via sudo)
 INVOKING_USER="${SUDO_USER:-$(id -un)}"
 
+# --no-splash: skip the boot/login splash (splash/install.sh)
+INSTALL_SPLASH=1
+for arg in "$@"; do
+  case $arg in
+    --no-splash) INSTALL_SPLASH=0 ;;
+    *)
+      echo "usage: $0 [--no-splash]" >&2
+      exit 1
+      ;;
+  esac
+done
+
 graceful_exit() {
   echo
   echo
@@ -283,6 +295,7 @@ sync_project_files() {
     --exclude="/install.sh" \
     --exclude="/README.md" \
     --exclude="/CLAUDE.md" \
+    --exclude="/splash" \
     --chmod=Du=rwx,Dg=rx,Do=rx,Fu=rw,Fg=r,Fo=r \
     "$SCRIPT_DIR/" "$INSTALL_DIR/"
 
@@ -339,6 +352,10 @@ install_state_dir
 sync_project_files
 
 check_greetd_config
+
+if [[ $INSTALL_SPLASH -eq 1 ]]; then
+  "$SCRIPT_DIR/splash/install.sh"
+fi
 
 echo
 echo "[EXIT] SUCCESSFULLY COMPLETED."

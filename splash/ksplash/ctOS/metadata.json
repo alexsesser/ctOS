@@ -1,0 +1,11 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Authors": [{ "Name": "ctos-boot" }],
+    "Description": "ctOS splash screen matching the ctOS greeter",
+    "Id": "ctOS",
+    "License": "GPLv3",
+    "Name": "ctOS"
+  },
+  "X-Plasma-APIVersion": "2"
+}
