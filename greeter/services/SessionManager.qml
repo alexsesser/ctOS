@@ -17,7 +17,8 @@ Singleton {
 
     readonly property var fallback: {
         "name": "KDE Plasma",
-        "exec": "startplasma-wayland"
+        "exec": "startplasma-wayland",
+        "graphical": true
     }
 
     property var sessions: []
@@ -85,7 +86,9 @@ done | sort -t "$(printf '\\t')" -k1,1 -u | sed 's/^/shell\\t/'
 
                 finder.found.push({
                     name,
-                    exec
+                    exec,
+                    // shells need the terminal, graphical sessions don't
+                    "graphical": kind === "session"
                 });
             }
         }

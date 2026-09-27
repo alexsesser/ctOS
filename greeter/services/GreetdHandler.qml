@@ -143,7 +143,12 @@ Singleton {
     }
 
     function finish() {
-        const launchCmd = SessionManager.current.exec.trim().split(/\s+/);
+        let launchCmd = SessionManager.current.exec.trim().split(/\s+/);
+        if (SessionManager.current.graphical) {
+            // greetd attaches the session to the console too: keep its startup
+            // output off the screen (journalctl -t ctos-session)
+            launchCmd = ["systemd-cat", "--identifier=ctos-session", ...launchCmd];
+        }
         logger.info(`Launching session: ${SessionManager.current.name} -> ${launchCmd.join(" ")}`);
 
         Greetd.launch(launchCmd);

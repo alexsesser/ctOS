@@ -160,7 +160,11 @@ export QT_QPA_PLATFORM=wayland
 export GDK_BACKEND=wayland
 export CTOS_MODE=greetd
 
-exec /usr/bin/kwin_wayland \\
+# greetd attaches the greeter to the console (tty1): clear what the boot left
+# there and log to the journal (journalctl -t ctos-greeter), otherwise the text
+# flashes on screen when kwin exits after login
+printf '\\033[2J\\033[3J\\033[H'
+exec systemd-cat --identifier=ctos-greeter /usr/bin/kwin_wayland \\
     --exit-with-session="/usr/bin/quickshell --path $INSTALL_DIR/greeter.qml" \\
     --no-lockscreen \\
     --no-global-shortcuts \\

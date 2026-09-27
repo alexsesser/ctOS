@@ -135,7 +135,7 @@ Lock screen:
 CTOS_MODE=lockd quickshell --path /opt/ctos/greeter.qml
 ```
 
-Greeter logs under greetd: add `exec >/tmp/ctos-greeter.log 2>&1` before the `exec /usr/bin/kwin_wayland` line in `/etc/ctos/greeter.kwin.conf`.
+Logs: `journalctl -t ctos-greeter` (greeter and its kwin), `journalctl -t ctos-session` (startup output of the graphical session). Both are kept off the console, so no text flashes between the greeter and the desktop.
 
 <br>
 
